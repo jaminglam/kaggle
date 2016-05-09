@@ -106,7 +106,9 @@ def preprocessData(df):
     le.fit(df.Title)
     title = le.transform(df.Title)
     df['Title'] = title.astype(np.float)
-
+    le.fit(df.Sex)
+    x_sex = le.transform(df.Sex)
+    df['Sex'] = x_sex.astype(np.float)
     # Pclass Level
     # df['HighLow'] = df['Pclass']
     # df.loc[(df.FarePerPerson<8), 'HighLow'] = 'Low'
@@ -120,7 +122,7 @@ def preprocessData(df):
     le.fit( df['Ticket'])
     x_ticket=le.transform( df['Ticket'])
     df['Ticket']=x_ticket.astype(np.float)
-    df = df.drop(['Name', 'Sex', 'Cabin', 'PassengerId', 'Age'], axis=1)
+    df = df.drop(['Name', 'Cabin', 'PassengerId', 'Age'], axis=1)
     return df
     
 train_df = pd.read_csv('train.csv')
