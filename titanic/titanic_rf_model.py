@@ -3,6 +3,7 @@ import pandas as pd
 import csv as csv
 from sklearn.ensemble import RandomForestClassifier
 from sklearn import preprocessing
+from sklearn.grid_search import GridSearchCV
 import string
 
 def convertAge(df):
@@ -134,11 +135,19 @@ train_df = preprocessData(train_df)
 test_df = preprocessData(test_df)
 train_data = train_df.values
 test_data = test_df.values
-
-print 'Training...'
-forest = RandomForestClassifier(n_estimators=100)
+#print 'Seraching Grid Param...'
+print 'Training'
+seed = 5
+#forest = RandomForestClassifier(criterion='entropy', max_features=12, n_estimators=300)
+forest = RandomForestClassifier(criterion='gini', max_depth=None, max_features=12, min_samples_split=2, min_weight_fraction_leaf=0.0, n_estimators=100, random_state=3)
+#forest = RandomForestClassifier()
 forest = forest.fit( train_data[0::,1::], train_data[0::,0] )
-
+#param_grid = {'n_estimators': [100, 150, 300, 350, 400, 450, 500], 'max_features': [2, 4, 6, 8, 10, 12, 14], 'random_state': [1, 2, 3, 4, 5], 'criterion': ['entropy', 'gini']}
+#clf = GridSearchCV(forest, param_grid)
+#clf.fit(train_data[0::,1::], train_data[0::,0])
+#print "Score result..."
+#print ("Best score: %0.3f" % clf.best_score_)
+#print (clf.best_estimator_)
 print 'Predicting...'
 output = forest.predict(test_data).astype(int)
 
