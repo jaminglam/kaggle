@@ -4,8 +4,11 @@ import csv as csv
 from sklearn.ensemble import RandomForestClassifier
 from sklearn import preprocessing
 from sklearn.grid_search import GridSearchCV
+from sklearn.cross_validation import train_test_split,StratifiedShuffleSplit,StratifiedKFold
+from sklearn.cross_validation import cross_val_score
+from sklearn.externals import joblib
 import string
-
+from sklearn.pipeline import Pipeline
 def convertAge(df):
     le = preprocessing.LabelEncoder()
     median_ages = np.zeros((2,3))
@@ -133,24 +136,43 @@ ids = test_df['PassengerId'].values
 # preprocess data
 train_df = preprocessData(train_df)
 test_df = preprocessData(test_df)
+
+train_X = train_df.loc[:, 'Pclass':'ClassFare']
+train_Y = train_df.loc[:, 'Survived']
+test_X = test_df.loc[:, 'Pclass':'ClassFare']
+
 train_data = train_df.values
 test_data = test_df.values
 #print 'Seraching Grid Param...'
-print 'Training'
+print 'Training...'
 seed = 5
 #forest = RandomForestClassifier(criterion='entropy', max_features=12, n_estimators=300)
-forest = RandomForestClassifier(criterion='gini', max_depth=None, max_features=12, min_samples_split=2, min_weight_fraction_leaf=0.0, n_estimators=100, random_state=3)
-#forest = RandomForestClassifier()
-forest = forest.fit( train_data[0::,1::], train_data[0::,0] )
-#param_grid = {'n_estimators': [100, 150, 300, 350, 400, 450, 500], 'max_features': [2, 4, 6, 8, 10, 12, 14], 'random_state': [1, 2, 3, 4, 5], 'criterion': ['entropy', 'gini']}
-#clf = GridSearchCV(forest, param_grid)
-#clf.fit(train_data[0::,1::], train_data[0::,0])
-#print "Score result..."
-#print ("Best score: %0.3f" % clf.best_score_)
-#print (clf.best_estimator_)
-print 'Predicting...'
-output = forest.predict(test_data).astype(int)
+#forest = RandomForestClassifier(criterion='gini', max_depth=None, max_features=12, min_samples_split=2, min_weight_fraction_leaf=0.0, n_estimators=100, random_state=3)
+clf=RandomForestClassifier(max_depth=5, min_samples_split=1, \
+min_samples_leaf=1, bootstrap=False, oob_score=False, n_jobs=1, random_state=seed, \
+verbose=0)
+pipeline=Pipeline([ ('clf',clf) ])
+param_grid = {"clf__n_estimators": (100,300,500), "clf__criterion": ["entropy", "gini"], "clf__max_features": ["auto", 4, 6, 8], "clf__min_samples_split": [1,2,3]}
+grid_search=GridSearchCV(pipeline, param_grid=param_grid, verbose=3,scoring='accuracy',\
+cv=StratifiedShuffleSplit(train_data[:, 0], n_iter=10, test_size=0.2, train_size=None, \
+random_state=seed)).fit(train_X, train_Y)
+print "Score result..."
+print ("Best score: %0.3f" % grid_search.best_score_)
+print (grid_search.best_estimator_)
+#print 'Predicting...'
+#output = forest.predict(test_data).astype(int)
 
+print('-----grid search end------------')
+print ('on all train set')
+scores = cross_val_score(grid_search.best_estimator_, train_data[0::,1::], train_data[0::,0], cv=3,scoring='accuracy')
+print scores.mean(),scores
+
+#serialize training
+model_file='train_model\model-rf.pkl'
+joblib.dump(grid_search.best_estimator_, model_file)
+
+test_clf = joblib.load(model_file)
+output=test_clf.predict(test_X).astype(int)
 predictions_file = open("result.csv", "wb")
 open_file_object = csv.writer(predictions_file)
 open_file_object.writerow(["PassengerId","Survived"])
